@@ -1,0 +1,11 @@
+{
+	"name": "@thom/dls-core",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"test": "go test ./...",
+		"test:run": "go test ./...",
+		"typecheck": "go build ./...",
+		"lint": "go vet ./..."
+	}
+}
