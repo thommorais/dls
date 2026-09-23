@@ -22,6 +22,7 @@ type StatsService struct {
 	openings    ports.OpeningRepository
 	people      ports.PersonRepository
 	songs       ports.SongRepository
+	archive     ports.ArchiveRepository
 }
 
 func NewStatsService(
@@ -32,6 +33,7 @@ func NewStatsService(
 	openings ports.OpeningRepository,
 	people ports.PersonRepository,
 	songs ports.SongRepository,
+	archive ports.ArchiveRepository,
 ) *StatsService {
 	return &StatsService{
 		episodes:    episodes,
@@ -41,6 +43,7 @@ func NewStatsService(
 		openings:    openings,
 		people:      people,
 		songs:       songs,
+		archive:     archive,
 	}
 }
 
@@ -69,13 +72,7 @@ func (s *StatsService) Episodes(ctx context.Context, filter domain.Filter) ([]do
 		return nil, err
 	}
 
-	tallies := rules.TallyByEpisode(rows.moments, rows.appearances, rows.people, rows.openings)
-	out := make([]domain.Episode, 0, len(episodes))
-	for _, episode := range episodes {
-		episode.Tally = tallies[episode.ID]
-		out = append(out, episode)
-	}
-	return out, nil
+	return withTallies(episodes, rows), nil
 }
 
 func (s *StatsService) Episode(ctx context.Context, slug string) (ports.EpisodeDetail, error) {
@@ -110,8 +107,16 @@ func (s *StatsService) Openings(ctx context.Context, filter domain.Filter) ([]do
 	return s.openings.List(ctx, filter)
 }
 
+func (s *StatsService) Archive(ctx context.Context, filter domain.Filter) ([]domain.ArchiveEntry, error) {
+	return s.archive.List(ctx, filter)
+}
+
+func (s *StatsService) ArchiveEntry(ctx context.Context, slug string) (domain.ArchiveEntry, error) {
+	return s.archive.GetBySlug(ctx, slug)
+}
+
 func (s *StatsService) Rankings(ctx context.Context, filter domain.Filter) (ports.Rankings, error) {
-	_, rows, err := s.load(ctx, filter)
+	episodes, rows, err := s.load(ctx, filter)
 	if err != nil {
 		return ports.Rankings{}, err
 	}
@@ -132,12 +137,19 @@ func (s *StatsService) Rankings(ctx context.Context, filter domain.Filter) (port
 		actors[momentType.Slug] = rules.ByActor(rows.moments, []string{momentType.Slug}, rows.people, filter.Limit)
 	}
 
+	// The box score reads the per-episode tallies, so the rows are counted
+	// once here and reused by all three folds.
+	scored := withTallies(episodes, rows)
+
 	return ports.Rankings{
 		Songs:        rules.TopSongs(rows.moments, songs, filter.Limit),
 		TriggerWords: rules.TopTriggerWords(rows.moments, filter.Limit),
 		Guests:       rules.TopGuests(rows.appearances, rows.people, filter.Limit),
 		Actors:       actors,
 		Types:        types,
+		Records:      rules.Records(scored, types),
+		Streaks:      rules.Streaks(scored, types),
+		Averages:     rules.Averages(scored, types),
 	}, nil
 }
 
@@ -148,6 +160,24 @@ func (s *StatsService) types(ctx context.Context) ([]domain.MomentType, error) {
 		return nil, err
 	}
 	return rules.OrderTypes(types), nil
+}
+
+// withTallies attaches each episode's own counters. An episode with nothing
+// in it still gets an empty tally rather than a nil map, so Of() reads zero
+// instead of panicking on a caller that did not check.
+func withTallies(episodes []domain.Episode, rows rowset) []domain.Episode {
+	tallies := rules.TallyByEpisode(rows.moments, rows.appearances, rows.people, rows.openings)
+
+	out := make([]domain.Episode, 0, len(episodes))
+	for _, episode := range episodes {
+		tally, ok := tallies[episode.ID]
+		if !ok {
+			tally = domain.Tally{Moments: map[string]int{}}
+		}
+		episode.Tally = tally
+		out = append(out, episode)
+	}
+	return out
 }
 
 // rowset is everything the folds need for one scope.

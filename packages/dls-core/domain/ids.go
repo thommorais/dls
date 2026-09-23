@@ -11,4 +11,5 @@ type (
 	SongID       string
 	OpeningID    string
 	AppearanceID string
+	ArchiveID    string
 )

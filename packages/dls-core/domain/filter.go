@@ -16,6 +16,9 @@ type Filter struct {
 	// Genre narrows the openings library. It is ignored everywhere else.
 	Genre string
 
+	// Kind narrows the archive to one shelf. It is ignored everywhere else.
+	Kind string
+
 	// Limit caps the rows of each ranking. Zero means no cap.
 	Limit int
 }

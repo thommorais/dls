@@ -14,6 +14,8 @@ type StatsUseCase interface {
 	Episode(ctx context.Context, slug string) (EpisodeDetail, error)
 	Openings(ctx context.Context, filter domain.Filter) ([]domain.Opening, error)
 	Rankings(ctx context.Context, filter domain.Filter) (Rankings, error)
+	Archive(ctx context.Context, filter domain.Filter) ([]domain.ArchiveEntry, error)
+	ArchiveEntry(ctx context.Context, slug string) (domain.ArchiveEntry, error)
 }
 
 // Overview is the home page: the counters, plus enough context to say how
@@ -50,4 +52,10 @@ type Rankings struct {
 	// nobody has done yet is present with no rows.
 	Actors map[string][]domain.Count
 	Types  []domain.MomentType
+
+	// The box score. Records, streaks and averages are what turn a pile of
+	// counters into something worth arguing about.
+	Records  []domain.Record
+	Streaks  []domain.Streak
+	Averages []domain.Average
 }

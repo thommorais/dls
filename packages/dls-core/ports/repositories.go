@@ -36,6 +36,11 @@ type OpeningRepository interface {
 	List(ctx context.Context, filter domain.Filter) ([]domain.Opening, error)
 }
 
+type ArchiveRepository interface {
+	List(ctx context.Context, filter domain.Filter) ([]domain.ArchiveEntry, error)
+	GetBySlug(ctx context.Context, slug string) (domain.ArchiveEntry, error)
+}
+
 type PersonRepository interface {
 	List(ctx context.Context) ([]domain.Person, error)
 }

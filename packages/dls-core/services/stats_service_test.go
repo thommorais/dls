@@ -34,6 +34,7 @@ func singing(episode domain.EpisodeID, actor domain.PersonID, word string, song 
 
 type fixture struct {
 	svc         *services.StatsService
+	archive     *fakeArchive
 	types       *fakeMomentTypes
 	episodes    *fakeEpisodes
 	moments     *fakeMoments
@@ -76,12 +77,16 @@ func newFixture() *fixture {
 			{ID: "p-guest", Slug: "guest", Name: "Guest", Kind: domain.PersonGuest, Gender: domain.GenderWoman},
 			{ID: "p-dude", Slug: "dude", Name: "Dude", Kind: domain.PersonGuest, Gender: domain.GenderMan},
 		}},
+		archive: &fakeArchive{items: []domain.ArchiveEntry{
+			{ID: "k1", Slug: "saiu-cantando", Title: "Saiu cantando", Kind: domain.ArchiveGlossary},
+			{ID: "k2", Slug: "o-primeiro-episodio", Title: "O primeiro episódio", Kind: domain.ArchiveMilestone},
+		}},
 		songs: &fakeSongs{items: []domain.Song{
 			{ID: "s-evid", Title: "Evidências"},
 			{ID: "s-anun", Title: "Anunciação"},
 		}},
 	}
-	f.svc = services.NewStatsService(f.episodes, f.types, f.moments, f.appearances, f.openings, f.people, f.songs)
+	f.svc = services.NewStatsService(f.episodes, f.types, f.moments, f.appearances, f.openings, f.people, f.songs, f.archive)
 	return f
 }
 
@@ -315,5 +320,69 @@ func TestOverviewPropagatesAFailureReadingTheTypes(t *testing.T) {
 
 	if _, err := f.svc.Overview(t.Context(), domain.Filter{}); err == nil {
 		t.Fatal("want an error when the types table cannot be read")
+	}
+}
+
+func TestRankingsCarryTheBoxScore(t *testing.T) {
+	f := newFixture()
+
+	got, err := f.svc.Rankings(t.Context(), domain.Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	records := map[string]domain.Record{}
+	for _, record := range got.Records {
+		records[record.TypeSlug] = record
+	}
+	// ep-1 has two questions, ep-2 has two songs.
+	if records["ana_question"].Count != 2 || records["ana_question"].Episode != "e1" {
+		t.Errorf("question record = %+v, want 2 in e1", records["ana_question"])
+	}
+	if records["sing"].Count != 2 || records["sing"].Episode != "e2" {
+		t.Errorf("sing record = %+v, want 2 in e2", records["sing"])
+	}
+
+	streaks := map[string]domain.Streak{}
+	for _, streak := range got.Streaks {
+		streaks[streak.TypeSlug] = streak
+	}
+	if streaks["sing"].Length != 2 {
+		t.Errorf("sing streak = %+v, want both episodes", streaks["sing"])
+	}
+
+	averages := map[string]domain.Average{}
+	for _, average := range got.Averages {
+		averages[average.TypeSlug] = average
+	}
+	if averages["ana_question"].PerEpisode != 1.5 {
+		t.Errorf("question average = %+v, want 1.5 per episode", averages["ana_question"])
+	}
+	if averages["dance"].PerEpisode != 0 {
+		t.Errorf("dance average = %+v, want 0", averages["dance"])
+	}
+}
+
+func TestArchivePassesTheKindToStorage(t *testing.T) {
+	f := newFixture()
+
+	got, err := f.svc.Archive(t.Context(), domain.Filter{Kind: "glossary"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(got) != 1 || got[0].Slug != "saiu-cantando" {
+		t.Errorf("got %+v, want the one glossary entry", got)
+	}
+	if f.archive.lastFilter.Kind != "glossary" {
+		t.Errorf("filter = %+v, want the kind passed through", f.archive.lastFilter)
+	}
+}
+
+func TestArchiveEntryReportsAMissingSlugAsNotFound(t *testing.T) {
+	f := newFixture()
+
+	if _, err := f.svc.ArchiveEntry(t.Context(), "nope"); !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("err = %v, want ErrNotFound", err)
 	}
 }

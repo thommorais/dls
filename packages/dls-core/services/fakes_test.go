@@ -179,3 +179,36 @@ func (r *fakeSongs) List(_ context.Context) ([]domain.Song, error) {
 	}
 	return r.items, nil
 }
+
+type fakeArchive struct {
+	failer
+	items      []domain.ArchiveEntry
+	lastFilter domain.Filter
+}
+
+func (r *fakeArchive) List(_ context.Context, filter domain.Filter) ([]domain.ArchiveEntry, error) {
+	r.lastFilter = filter
+	if err := r.fail("List"); err != nil {
+		return nil, err
+	}
+	out := []domain.ArchiveEntry{}
+	for _, entry := range r.items {
+		if filter.Kind != "" && string(entry.Kind) != filter.Kind {
+			continue
+		}
+		out = append(out, entry)
+	}
+	return out, nil
+}
+
+func (r *fakeArchive) GetBySlug(_ context.Context, slug string) (domain.ArchiveEntry, error) {
+	if err := r.fail("GetBySlug"); err != nil {
+		return domain.ArchiveEntry{}, err
+	}
+	for _, entry := range r.items {
+		if entry.Slug == slug {
+			return entry, nil
+		}
+	}
+	return domain.ArchiveEntry{}, domain.ErrNotFound
+}
