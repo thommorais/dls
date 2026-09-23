@@ -54,3 +54,7 @@ apps/base/.gocache/
 
 # Go binaries
 apps/base/base
+
+# TanStack Start build artifacts
+.tanstack/
+.output/
