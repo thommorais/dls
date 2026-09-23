@@ -1,0 +1,25 @@
+{
+	"name": "@thom/dls-domain",
+	"version": "0.1.0",
+	"private": true,
+	"sideEffects": false,
+	"exports": {
+		"./types": "./src/types.ts",
+		"./filter": "./src/filter.ts",
+		"./format": "./src/format.ts",
+		"./series": "./src/series.ts"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit",
+		"lint": "oxlint ./src",
+		"format": "oxfmt ./src",
+		"test": "vitest",
+		"test:run": "vitest run",
+		"test:watch": "vitest --watch"
+	},
+	"devDependencies": {
+		"@thom/typescript-config": "workspace:*",
+		"typescript": "6.0.3",
+		"vitest": "^3.2.4"
+	}
+}
