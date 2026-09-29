@@ -84,7 +84,7 @@ func ensureEpisodes(app core.App) error {
 		&core.NumberField{Name: "number"},
 		&core.TextField{Name: "slug", Required: true, Max: 120, Pattern: slugPattern},
 		&core.TextField{Name: "title", Required: true, Max: 300, Presentable: true},
-		&core.DateField{Name: "published_at", Required: true},
+		&core.DateField{Name: "published_at"},
 		&core.NumberField{Name: "duration_seconds"},
 		&core.TextField{Name: "thumbnail_url", Max: 500},
 		&core.EditorField{Name: "description"},

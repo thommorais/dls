@@ -1,6 +1,8 @@
 package seed
 
 import (
+	"fmt"
+	"sort"
 	"time"
 
 	"dls/dls-core/domain"
@@ -71,15 +73,61 @@ type Dataset struct {
 	Archive  []ArchiveEntry
 }
 
-// Build returns the dataset. There is no real episode data transcribed yet,
-// so it seeds only the moment type vocabulary and leaves episodes, people,
-// songs and archive entries empty until the real show's records are added.
+// Build returns the dataset. Episodes, their moments and their openings come
+// from data.go, transcribed from the show's own spreadsheet (see
+// apps/site/public). Titles, publish dates and durations aren't in that
+// transcription yet, so they stay blank rather than invented.
 func Build() Dataset {
 	return Dataset{
 		Types:    momentTypes,
 		People:   people,
 		Songs:    songs,
-		Episodes: []Episode{},
+		Episodes: buildEpisodes(),
 		Archive:  archiveEntries(),
 	}
+}
+
+func buildEpisodes() []Episode {
+	byNumber := make(map[int]*Episode, len(rawEpisodes))
+	episodes := make([]Episode, len(rawEpisodes))
+	for i, raw := range rawEpisodes {
+		episodes[i] = Episode{
+			Number:       raw.Number,
+			Slug:         fmt.Sprintf("ep-%d", raw.Number),
+			Title:        fmt.Sprintf("Episódio %d", raw.Number),
+			YouTubeID:    raw.YouTubeID,
+			ThumbnailURL: fmt.Sprintf("https://img.youtube.com/vi/%s/hqdefault.jpg", raw.YouTubeID),
+		}
+		byNumber[raw.Number] = &episodes[i]
+	}
+
+	for _, raw := range rawMoments {
+		episode, ok := byNumber[raw.EpisodeNumber]
+		if !ok {
+			continue
+		}
+		episode.Moments = append(episode.Moments, Moment{
+			TypeSlug:       raw.TypeSlug,
+			VideoTimestamp: raw.AtSeconds,
+			Summary:        raw.Summary,
+		})
+	}
+
+	for _, raw := range rawOpenings {
+		episode, ok := byNumber[raw.EpisodeNumber]
+		if !ok {
+			continue
+		}
+		episode.Openings = append(episode.Openings, Opening{
+			Title:        raw.Title,
+			AuthorName:   raw.Author,
+			AuthorHandle: raw.Handle,
+			Genre:        raw.Genre,
+			AtSeconds:    raw.AtSeconds,
+			Status:       domain.OpeningAired,
+		})
+	}
+
+	sort.Slice(episodes, func(i, j int) bool { return episodes[i].Number < episodes[j].Number })
+	return episodes
 }
