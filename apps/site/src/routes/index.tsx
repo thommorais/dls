@@ -37,7 +37,7 @@ function Home() {
 
 	return (
 		<>
-			<PageHeader section='Café com Caos' title='Os números do programa' />
+			<PageHeader section='Desce a Letra Show' title='Os números do programa' />
 
 			<div className='border-foreground bg-foreground text-background mb-5 rounded-2xl border px-5 pt-5 pb-4'>
 				<div className='mb-4 border-b border-white/15 pb-4'>

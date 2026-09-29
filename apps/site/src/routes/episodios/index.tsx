@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { youtubeLink } from '@thom/dls-domain/format'
 import { cumulative, episodeSeries } from '@thom/dls-domain/series'
 import type { Episode, MomentType } from '@thom/dls-domain/types'
 import { episodesQuery, overviewQuery } from '_/app/queries'
@@ -63,15 +64,15 @@ function Episodes() {
 }
 
 function EpisodeRow({ episode, types }: { episode: Episode; types: readonly MomentType[] }) {
+	const watchHref = youtubeLink(episode.youtubeId)
+
 	return (
-		<Link
-			to='/episodios/$slug'
-			params={{ slug: episode.slug }}
-			className='border-border bg-card hover:border-foreground flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border px-4 py-3 transition-colors'
-		>
-			<span className='text-muted-foreground nums w-10 text-xs font-semibold'>#{episode.number}</span>
-			<span className='min-w-0 flex-1 truncate text-sm font-medium'>{episode.title}</span>
-			<span className='text-muted-foreground nums text-xs'>{day.format(episode.publishedAt)}</span>
+		<div className='border-border bg-card hover:border-foreground flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border px-4 py-3 transition-colors'>
+			<Link to='/episodios/$slug' params={{ slug: episode.slug }} className='flex min-w-0 flex-1 items-center gap-x-4'>
+				<span className='text-muted-foreground nums w-10 text-xs font-semibold'>#{episode.number}</span>
+				<span className='min-w-0 flex-1 truncate text-sm font-medium'>{episode.title}</span>
+				<span className='text-muted-foreground nums text-xs'>{day.format(episode.publishedAt)}</span>
+			</Link>
 			<span className='flex items-center gap-1.5'>
 				{types.map(type => {
 					const count = episode.tally.moments[type.slug] ?? 0
@@ -89,8 +90,19 @@ function EpisodeRow({ episode, types }: { episode: Episode; types: readonly Mome
 						</span>
 					)
 				})}
+				{watchHref ? (
+					<a
+						href={watchHref}
+						target='_blank'
+						rel='noreferrer'
+						onClick={event => event.stopPropagation()}
+						className='text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline'
+					>
+						assistir
+					</a>
+				) : null}
 			</span>
-		</Link>
+		</div>
 	)
 }
 

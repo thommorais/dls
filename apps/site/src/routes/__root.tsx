@@ -16,11 +16,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 		meta: [
 			{ charSet: 'utf-8' },
 			{ name: 'viewport', content: 'width=device-width, initial-scale=1' },
-			{ title: 'CAFÉ COM CAOS · números' },
+			{ title: 'DESCE A LETRA SHOW · números' },
 			{
 				name: 'description',
-				content:
-					'As estatísticas do CAFÉ COM CAOS: perguntas pra Dona Neide, músicas, brigas e as aberturas do público.',
+				content: 'As estatísticas do Desce a Letra Show: cantorias, músicas e as aberturas do público.',
 			},
 		],
 		links: [{ rel: 'stylesheet', href: appCss }],
@@ -55,7 +54,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 			<header className='border-border bg-background/90 sticky top-0 z-40 border-b backdrop-blur'>
 				<div className='mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3'>
 					<Link to='/' className='font-display text-sm uppercase'>
-						Café com Caos
+						Desce a Letra Show
 					</Link>
 					<nav className='label flex flex-wrap items-center gap-4 text-[11px]'>
 						{NAV.map(item => (
