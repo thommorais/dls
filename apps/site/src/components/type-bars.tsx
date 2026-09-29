@@ -1,5 +1,5 @@
 import type { TallyPoint } from '@thom/dls-domain/series'
-import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 const tooltipStyle: React.CSSProperties = {
 	background: 'var(--card)',
@@ -10,8 +10,8 @@ const tooltipStyle: React.CSSProperties = {
 }
 
 /**
- * The colour of every bar comes from the moment type itself, served by the
- * API, so a stat keeps its colour on every page it appears on.
+ * Monochrome by design: every bar is the same fill, so a stat reads by
+ * height alone, not by which moment type happens to be which hue.
  */
 export function TypeBars({ points }: { points: readonly TallyPoint[] }) {
 	if (points.length === 0) {
@@ -39,12 +39,8 @@ export function TypeBars({ points }: { points: readonly TallyPoint[] }) {
 						width={40}
 						tickCount={5}
 					/>
-					<Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
-					<Bar dataKey='count' name='momentos' radius={[6, 6, 0, 0]} maxBarSize={64}>
-						{points.map(point => (
-							<Cell key={point.slug} fill={point.color} />
-						))}
-					</Bar>
+					<Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--muted)', opacity: 0.6 }} />
+					<Bar dataKey='count' name='momentos' fill='var(--foreground)' radius={[2, 2, 0, 0]} maxBarSize={64} />
 				</BarChart>
 			</ResponsiveContainer>
 		</div>

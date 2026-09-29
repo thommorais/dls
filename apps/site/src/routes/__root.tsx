@@ -35,7 +35,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootComponent() {
 	return (
-		<html lang='pt-BR' className='dark'>
+		<html lang='pt-BR'>
 			<head>
 				<HeadContent />
 			</head>
@@ -52,18 +52,18 @@ function RootComponent() {
 function Shell({ children }: { children: React.ReactNode }) {
 	return (
 		<div className='min-h-screen'>
-			<header className='border-border bg-card/60 sticky top-0 z-40 border-b backdrop-blur'>
+			<header className='border-border bg-background/90 sticky top-0 z-40 border-b backdrop-blur'>
 				<div className='mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3'>
-					<Link to='/' className='text-sm font-extrabold tracking-tight'>
-						CAFÉ COM CAOS
+					<Link to='/' className='font-display text-sm uppercase'>
+						Café com Caos
 					</Link>
-					<nav className='flex flex-wrap items-center gap-1'>
+					<nav className='label flex flex-wrap items-center gap-4 text-[11px]'>
 						{NAV.map(item => (
 							<Link
 								key={item.to}
 								to={item.to}
-								className='text-muted-foreground hover:bg-secondary hover:text-foreground rounded-md px-2.5 py-1 text-[13px] font-medium transition-colors'
-								activeProps={{ className: 'bg-accent text-accent-foreground' }}
+								className='text-muted-foreground hover:text-foreground border-b border-transparent pb-0.5 transition-colors'
+								activeProps={{ className: 'text-foreground border-foreground' }}
 								activeOptions={{ exact: item.to === '/' }}
 							>
 								{item.label}

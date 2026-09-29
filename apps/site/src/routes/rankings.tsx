@@ -33,11 +33,8 @@ function Rankings() {
 					const average = averages.get(type.slug)
 
 					return (
-						<div key={type.slug} className='border-border bg-card rounded-xl border p-4 shadow-sm'>
-							<div className='mb-3 flex items-center gap-2'>
-								<span className='size-2.5 rounded-full' style={{ backgroundColor: type.color }} />
-								<p className='text-xs font-semibold'>{type.label}</p>
-							</div>
+						<div key={type.slug} className='border-border bg-card border-dash rounded-2xl border p-4'>
+							<p className='label mb-3 text-xs'>{type.label}</p>
 
 							<p className='text-muted-foreground text-xs'>Recorde num episódio</p>
 							<p className='nums text-2xl font-bold'>{record?.count ?? 0}</p>
@@ -60,13 +57,13 @@ function Rankings() {
 
 			<div className='mb-5 grid gap-5 lg:grid-cols-3'>
 				<Card title='Músicas mais emendadas'>
-					<CountTable rows={rankings.songs} color='#10b981' />
+					<CountTable rows={rankings.songs} />
 				</Card>
 				<Card title='Palavras que puxam música'>
-					<CountTable rows={rankings.triggerWords} color='#f59e0b' />
+					<CountTable rows={rankings.triggerWords} />
 				</Card>
 				<Card title='Convidados que mais voltaram'>
-					<CountTable rows={rankings.guests} color='#8b5cf6' />
+					<CountTable rows={rankings.guests} />
 				</Card>
 			</div>
 
@@ -75,11 +72,7 @@ function Rankings() {
 					const board = rankings.actors[type.slug] ?? []
 					return (
 						<Card key={type.slug} title={type.label} subtitle='Quem mais fez'>
-							{board.length === 0 ? (
-								<Empty>Ainda não aconteceu.</Empty>
-							) : (
-								<CountTable rows={board} color={type.color} />
-							)}
+							{board.length === 0 ? <Empty>Ainda não aconteceu.</Empty> : <CountTable rows={board} />}
 						</Card>
 					)
 				})}

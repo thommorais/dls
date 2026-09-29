@@ -5,6 +5,7 @@ import type { EpisodeDetail, Moment } from '@thom/dls-domain/types'
 import { episodeQuery } from '_/app/queries'
 import { Card, Empty } from '_/components/card'
 import { PageHeader } from '_/components/page-header'
+import { StatTile } from '_/components/stat-tile'
 
 // oxlint-disable-next-line import/no-default-export -- route
 export const Route = createFileRoute('/episodios/$slug')({
@@ -38,18 +39,9 @@ function EpisodePage() {
 			/>
 
 			<div className='mb-5 grid gap-3 sm:grid-cols-3'>
-				<div className='border-border bg-card rounded-xl border p-4 shadow-sm'>
-					<p className='text-muted-foreground mb-1 text-xs font-medium'>Momentos</p>
-					<p className='nums text-2xl font-bold'>{episode.tally.totalMoments}</p>
-				</div>
-				<div className='border-border bg-card rounded-xl border p-4 shadow-sm'>
-					<p className='text-muted-foreground mb-1 text-xs font-medium'>Convidadas entrevistadas</p>
-					<p className='nums text-2xl font-bold'>{episode.tally.womenInterviewed}</p>
-				</div>
-				<div className='border-border bg-card rounded-xl border p-4 shadow-sm'>
-					<p className='text-muted-foreground mb-1 text-xs font-medium'>Duração</p>
-					<p className='nums text-2xl font-bold'>{formatTimestamp(episode.durationSeconds)}</p>
-				</div>
+				<StatTile label='Momentos' value={episode.tally.totalMoments} />
+				<StatTile label='Convidadas entrevistadas' value={episode.tally.womenInterviewed} />
+				<StatTile label='Duração' value={formatTimestamp(episode.durationSeconds)} />
 			</div>
 
 			<div className='grid gap-5 lg:grid-cols-[2fr_1fr]'>
@@ -124,9 +116,7 @@ function Timeline({
 				<li key={moment.id} className='border-border flex gap-3 border-b py-2.5 last:border-0'>
 					<Stamp moment={moment} youtubeId={youtubeId} />
 					<div className='min-w-0 flex-1'>
-						<p className='text-xs font-semibold' style={{ color: moment.color }}>
-							{moment.typeLabel}
-						</p>
+						<p className='label text-muted-foreground text-[11px]'>{moment.typeLabel}</p>
 						<p className='text-sm'>{moment.summary}</p>
 						<p className='text-muted-foreground mt-0.5 text-xs'>
 							{moment.actor ? names.get(moment.actor) : null}

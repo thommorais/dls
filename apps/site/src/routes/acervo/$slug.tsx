@@ -29,7 +29,7 @@ function ArchiveEntryPage() {
 				}
 			/>
 
-			<article className='border-border bg-card rounded-xl border px-6 py-6 shadow-sm'>
+			<article className='border-border bg-card rounded-2xl border px-6 py-6'>
 				{entry.summary ? <p className='text-muted-foreground mb-4 text-sm'>{entry.summary}</p> : null}
 
 				{/* The body is plain text with blank lines between paragraphs, so it

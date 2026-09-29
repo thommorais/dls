@@ -5,6 +5,7 @@ import type { Episode, MomentType } from '@thom/dls-domain/types'
 import { episodesQuery, overviewQuery } from '_/app/queries'
 import { Card, Empty } from '_/components/card'
 import { PageHeader } from '_/components/page-header'
+import { grayShades } from '_/lib/palette'
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 // oxlint-disable-next-line import/no-default-export -- route
@@ -66,7 +67,7 @@ function EpisodeRow({ episode, types }: { episode: Episode; types: readonly Mome
 		<Link
 			to='/episodios/$slug'
 			params={{ slug: episode.slug }}
-			className='border-border bg-card hover:border-primary/40 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border px-4 py-3 shadow-sm transition-colors'
+			className='border-border bg-card hover:border-foreground flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border px-4 py-3 transition-colors'
 		>
 			<span className='text-muted-foreground nums w-10 text-xs font-semibold'>#{episode.number}</span>
 			<span className='min-w-0 flex-1 truncate text-sm font-medium'>{episode.title}</span>
@@ -78,11 +79,11 @@ function EpisodeRow({ episode, types }: { episode: Episode; types: readonly Mome
 						<span
 							key={type.slug}
 							title={`${type.label}: ${count}`}
-							className='nums rounded px-1.5 py-0.5 text-[11px] font-semibold'
-							style={{
-								backgroundColor: count > 0 ? `${type.color}22` : 'transparent',
-								color: count > 0 ? type.color : 'var(--muted-foreground)',
-							}}
+							className={
+								count > 0
+									? 'bg-foreground/8 text-foreground nums rounded px-1.5 py-0.5 text-[11px] font-semibold'
+									: 'text-muted-foreground/50 nums rounded px-1.5 py-0.5 text-[11px] font-semibold'
+							}
 						>
 							{count}
 						</span>
@@ -95,6 +96,8 @@ function EpisodeRow({ episode, types }: { episode: Episode; types: readonly Mome
 
 function Cumulative({ episodes, types }: { episodes: readonly Episode[]; types: readonly MomentType[] }) {
 	if (episodes.length === 0) return <Empty>Nada para desenhar.</Empty>
+
+	const shades = grayShades(types.length)
 
 	// One row per episode, one column per type, so the areas stack on a
 	// shared x axis without recomputing the sort for each series.
@@ -126,16 +129,16 @@ function Cumulative({ episodes, types }: { episodes: readonly Episode[]; types: 
 						tickCount={5}
 					/>
 					<Tooltip contentStyle={tooltipStyle} />
-					{types.map(type => (
+					{types.map((type, index) => (
 						<Area
 							key={type.slug}
 							type='monotone'
 							dataKey={type.slug}
 							name={type.label}
 							stackId='total'
-							stroke={type.color}
-							fill={type.color}
-							fillOpacity={0.18}
+							stroke={shades[index]}
+							fill={shades[index]}
+							fillOpacity={0.55}
 							strokeWidth={1.5}
 							dot={false}
 						/>

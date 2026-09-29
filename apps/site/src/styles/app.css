@@ -1,57 +1,56 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Silkscreen:wght@400;700&display=swap');
 @import 'tailwindcss';
 
 @custom-variant dark (&:is(.dark *));
 
 /*
- * The token set follows securo: every colour is a variable, the dark values
- * override the same names, and components only ever name the token. The
- * accents that matter most here are served by the API instead, one colour per
- * moment type, so a stat looks the same in every chart on every page.
+ * Monochrome only: black, white, grays. No brand color anywhere, including
+ * charts and per-type accents, so a stat reads by weight and position, not
+ * by hue. Dark values override the same names for when .dark is applied.
  */
 :root {
-	--background: #f7f6f3;
-	--foreground: #14100c;
+	--background: #fafaf9;
+	--foreground: #0a0a09;
 	--card: #ffffff;
-	--card-foreground: #14100c;
+	--card-foreground: #0a0a09;
 	--popover: #ffffff;
-	--popover-foreground: #14100c;
-	--primary: #b45309;
+	--popover-foreground: #0a0a09;
+	--primary: #0a0a09;
 	--primary-foreground: #ffffff;
-	--secondary: #f0ede7;
-	--secondary-foreground: #14100c;
-	--muted: #f0ede7;
-	--muted-foreground: #6b6459;
-	--accent: #fdf3e7;
-	--accent-foreground: #92400e;
-	--destructive: #e11d48;
+	--secondary: #f1f0ee;
+	--secondary-foreground: #0a0a09;
+	--muted: #f1f0ee;
+	--muted-foreground: #78766f;
+	--accent: #ececea;
+	--accent-foreground: #0a0a09;
+	--destructive: #b91c1c;
 	--destructive-foreground: #ffffff;
-	--border: #e6e1d8;
-	--input: #e6e1d8;
-	--ring: #b45309;
-	--radius: 0.625rem;
+	--border: #e2e0db;
+	--input: #e2e0db;
+	--ring: #0a0a09;
+	--radius: 1rem;
 }
 
 .dark {
-	--background: #0c0b0a;
-	--foreground: #f4f1ec;
-	--card: #17150f;
-	--card-foreground: #f4f1ec;
-	--popover: #17150f;
-	--popover-foreground: #f4f1ec;
-	--primary: #f59e0b;
-	--primary-foreground: #14100c;
-	--secondary: #242018;
-	--secondary-foreground: #f4f1ec;
-	--muted: #242018;
-	--muted-foreground: #9b9284;
-	--accent: #2a2114;
-	--accent-foreground: #fbbf24;
-	--destructive: #fb7185;
-	--destructive-foreground: #0c0b0a;
-	--border: #2b2620;
-	--input: #2b2620;
-	--ring: #f59e0b;
+	--background: #0a0a09;
+	--foreground: #f5f4f1;
+	--card: #141412;
+	--card-foreground: #f5f4f1;
+	--popover: #141412;
+	--popover-foreground: #f5f4f1;
+	--primary: #f5f4f1;
+	--primary-foreground: #0a0a09;
+	--secondary: #201f1c;
+	--secondary-foreground: #f5f4f1;
+	--muted: #201f1c;
+	--muted-foreground: #948f85;
+	--accent: #201f1c;
+	--accent-foreground: #f5f4f1;
+	--destructive: #f87171;
+	--destructive-foreground: #0a0a09;
+	--border: #26251f;
+	--input: #26251f;
+	--ring: #f5f4f1;
 }
 
 @theme inline {
@@ -82,6 +81,7 @@
 	--color-ring: var(--ring);
 
 	--font-sans: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
+	--font-display: 'Silkscreen', 'Geist', monospace;
 }
 
 @layer base {
@@ -96,18 +96,33 @@
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
 	}
-
-	h1,
-	h2,
-	h3 {
-		letter-spacing: -0.035em;
-	}
 }
 
 @layer utilities {
 	/* Every number on this site is a figure to compare, so they all line up. */
 	.nums {
 		font-variant-numeric: tabular-nums;
+	}
+
+	/* The pixel display face, reserved for headlines and section titles. */
+	.font-display {
+		font-family: var(--font-display);
+		letter-spacing: 0.01em;
+	}
+
+	/* The small tracked uppercase label used for every eyebrow, section
+	   heading, and grid axis, echoing the reference's "DAILY PROGRESS" style. */
+	.label {
+		font-family: var(--font-display);
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+	}
+
+	/* The unselected/inactive card treatment from the reference: dashed
+	   border instead of a solid one, so a solid card reads as the one that
+	   matters. */
+	.border-dash {
+		border-style: dashed;
 	}
 }
 

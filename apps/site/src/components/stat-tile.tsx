@@ -2,21 +2,24 @@ export function StatTile({
 	label,
 	value,
 	hint,
-	color,
+	emphasis = false,
 }: {
 	label: string
 	value: string | number
 	hint?: string
-	color?: string
+	emphasis?: boolean
 }) {
 	return (
-		<div className='border-border bg-card rounded-xl border p-4 shadow-sm'>
-			<div className='mb-2 flex items-center gap-2'>
-				{color ? <span className='size-2.5 shrink-0 rounded-full' style={{ backgroundColor: color }} /> : null}
-				<p className='text-muted-foreground text-xs font-medium'>{label}</p>
-			</div>
+		<div
+			className={
+				emphasis
+					? 'border-foreground bg-foreground text-background rounded-2xl border p-4'
+					: 'border-border bg-card text-card-foreground border-dash rounded-2xl border p-4'
+			}
+		>
+			<p className={`label mb-2 text-[11px] ${emphasis ? 'opacity-70' : 'text-muted-foreground'}`}>{label}</p>
 			<p className='nums text-2xl font-bold'>{value}</p>
-			{hint ? <p className='text-muted-foreground nums mt-1 text-xs'>{hint}</p> : null}
+			{hint ? <p className={`nums mt-1 text-xs ${emphasis ? 'opacity-70' : 'text-muted-foreground'}`}>{hint}</p> : null}
 		</div>
 	)
 }

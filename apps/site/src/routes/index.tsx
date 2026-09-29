@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { formatPerEpisode } from '@thom/dls-domain/format'
 import { tallySeries } from '@thom/dls-domain/series'
 import { overviewQuery } from '_/app/queries'
+import { Card } from '_/components/card'
 import { PageHeader } from '_/components/page-header'
 import { StatTile } from '_/components/stat-tile'
 import { TypeBars } from '_/components/type-bars'
@@ -36,43 +37,42 @@ function Home() {
 
 	return (
 		<>
-			<PageHeader section='CAFÉ COM CAOS' title='Os números do programa' />
+			<PageHeader section='Café com Caos' title='Os números do programa' />
 
-			<div className='border-border bg-card mb-5 rounded-xl border px-5 pt-5 pb-4 shadow-sm'>
-				<div className='border-border mb-4 border-b pb-4'>
-					<p className='text-muted-foreground mb-1 text-xs font-semibold'>Momentos contados</p>
+			<div className='border-foreground bg-foreground text-background mb-5 rounded-2xl border px-5 pt-5 pb-4'>
+				<div className='mb-4 border-b border-white/15 pb-4'>
+					<p className='label mb-1 text-xs opacity-70'>Momentos contados</p>
 					<p className='nums text-4xl leading-tight font-bold'>{overview.tally.totalMoments}</p>
-					<p className='text-muted-foreground mt-2 text-xs'>
+					<p className='mt-2 text-xs opacity-70'>
 						em {overview.episodes} episódios · {range}
 					</p>
 				</div>
 
 				<div className='grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-3'>
 					<div>
-						<p className='text-muted-foreground mb-1 text-xs font-medium'>Mulheres entrevistadas</p>
+						<p className='label mb-1 text-[11px] opacity-70'>Mulheres entrevistadas</p>
 						<p className='nums text-xl font-bold'>{overview.tally.womenInterviewed}</p>
 					</div>
 					<div>
-						<p className='text-muted-foreground mb-1 text-xs font-medium'>Aberturas no ar</p>
+						<p className='label mb-1 text-[11px] opacity-70'>Aberturas no ar</p>
 						<p className='nums text-xl font-bold'>{overview.tally.openingsAired}</p>
 					</div>
 					<div>
-						<p className='text-muted-foreground mb-1 text-xs font-medium'>Momentos por episódio</p>
-						<p className='nums text-primary text-xl font-bold'>{formatPerEpisode(perEpisode)}</p>
+						<p className='label mb-1 text-[11px] opacity-70'>Momentos por episódio</p>
+						<p className='nums text-xl font-bold'>{formatPerEpisode(perEpisode)}</p>
 					</div>
 				</div>
 			</div>
 
 			<div className='mb-5 grid grid-cols-2 gap-3 lg:grid-cols-3'>
 				{series.map(point => (
-					<StatTile key={point.slug} label={point.label} value={point.count} color={point.color} />
+					<StatTile key={point.slug} label={point.label} value={point.count} />
 				))}
 			</div>
 
-			<div className='border-border bg-card rounded-xl border px-5 pt-5 pb-4 shadow-sm'>
-				<p className='mb-3 text-sm font-semibold'>Momentos por tipo</p>
+			<Card title='Momentos por tipo'>
 				<TypeBars points={series} />
-			</div>
+			</Card>
 		</>
 	)
 }

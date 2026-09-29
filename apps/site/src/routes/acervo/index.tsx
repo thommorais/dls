@@ -38,8 +38,8 @@ function Archive() {
 				<Link
 					to='/acervo'
 					search={{}}
-					className='border-border hover:bg-secondary rounded-full border px-3 py-1 text-xs font-medium'
-					activeProps={{ className: 'bg-accent text-accent-foreground border-transparent' }}
+					className='border-border border-dash hover:border-foreground label rounded-full border px-3 py-1 text-[11px]'
+					activeProps={{ className: 'bg-foreground text-background border-foreground border-solid' }}
 					activeOptions={{ exact: true, includeSearch: true }}
 				>
 					tudo
@@ -49,8 +49,8 @@ function Archive() {
 						key={kind}
 						to='/acervo'
 						search={{ kind }}
-						className='border-border hover:bg-secondary rounded-full border px-3 py-1 text-xs font-medium'
-						activeProps={{ className: 'bg-accent text-accent-foreground border-transparent' }}
+						className='border-border border-dash hover:border-foreground label rounded-full border px-3 py-1 text-[11px]'
+						activeProps={{ className: 'bg-foreground text-background border-foreground border-solid' }}
 						activeOptions={{ includeSearch: true }}
 					>
 						{KIND_LABELS[kind]}
@@ -67,11 +67,9 @@ function Archive() {
 							key={entry.id}
 							to='/acervo/$slug'
 							params={{ slug: entry.slug }}
-							className='border-border bg-card hover:border-primary/40 rounded-xl border p-4 shadow-sm transition-colors'
+							className='border-border bg-card border-dash hover:border-foreground rounded-2xl border p-4 transition-colors'
 						>
-							<p className='text-muted-foreground mb-1 text-[11px] font-semibold tracking-[0.12em] uppercase'>
-								{KIND_LABELS[entry.kind] ?? entry.kind}
-							</p>
+							<p className='label text-muted-foreground mb-1 text-[11px]'>{KIND_LABELS[entry.kind] ?? entry.kind}</p>
 							<p className='text-sm font-semibold'>{entry.title}</p>
 							<p className='text-muted-foreground mt-1 text-xs'>{entry.summary}</p>
 						</Link>

@@ -4,6 +4,7 @@ import { parseFilter } from '@thom/dls-domain/filter'
 import { openingsQuery } from '_/app/queries'
 import { Card, Empty } from '_/components/card'
 import { PageHeader } from '_/components/page-header'
+import { StatTile } from '_/components/stat-tile'
 
 // oxlint-disable-next-line import/no-default-export -- route
 export const Route = createFileRoute('/aberturas')({
@@ -39,8 +40,8 @@ function Openings() {
 				<Link
 					to='/aberturas'
 					search={{}}
-					className='border-border hover:bg-secondary rounded-full border px-3 py-1 text-xs font-medium'
-					activeProps={{ className: 'bg-accent text-accent-foreground border-transparent' }}
+					className='border-border border-dash hover:border-foreground label rounded-full border px-3 py-1 text-[11px]'
+					activeProps={{ className: 'bg-foreground text-background border-foreground border-solid' }}
 					activeOptions={{ exact: true, includeSearch: true }}
 				>
 					todas
@@ -50,8 +51,8 @@ function Openings() {
 						key={genre}
 						to='/aberturas'
 						search={{ genre }}
-						className='border-border hover:bg-secondary rounded-full border px-3 py-1 text-xs font-medium'
-						activeProps={{ className: 'bg-accent text-accent-foreground border-transparent' }}
+						className='border-border border-dash hover:border-foreground label rounded-full border px-3 py-1 text-[11px]'
+						activeProps={{ className: 'bg-foreground text-background border-foreground border-solid' }}
 						activeOptions={{ includeSearch: true }}
 					>
 						{genre}
@@ -60,14 +61,8 @@ function Openings() {
 			</div>
 
 			<div className='mb-5 grid gap-3 sm:grid-cols-2'>
-				<div className='border-border bg-card rounded-xl border p-4 shadow-sm'>
-					<p className='text-muted-foreground mb-1 text-xs font-medium'>Já foram ao ar</p>
-					<p className='nums text-2xl font-bold'>{aired.length}</p>
-				</div>
-				<div className='border-border bg-card rounded-xl border p-4 shadow-sm'>
-					<p className='text-muted-foreground mb-1 text-xs font-medium'>Esperando na caixa de entrada</p>
-					<p className='nums text-2xl font-bold'>{inbox.length}</p>
-				</div>
+				<StatTile label='Já foram ao ar' value={aired.length} />
+				<StatTile label='Esperando na caixa de entrada' value={inbox.length} />
 			</div>
 
 			<div className='grid gap-5 lg:grid-cols-2'>
