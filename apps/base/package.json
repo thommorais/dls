@@ -3,7 +3,8 @@
 	"version": "1.0.0",
 	"private": true,
 	"scripts": {
-		"dev": "go run main.go serve",
+		"dev": "go run . serve",
+		"seed": "go run . seed",
 		"typegen": "npx pocketbase-typegen --db ./pb_data/data.db --out ../site/src/types/pocketbase-types.ts"
 	},
 	"dependencies": {
