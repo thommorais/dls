@@ -11,9 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anthropics/anthropic-sdk-go"
-	anthropicoption "github.com/anthropics/anthropic-sdk-go/option"
-	"github.com/anthropics/anthropic-sdk-go/packages/param"
 	kkyoutube "github.com/kkdai/youtube/v2"
 	"github.com/pocketbase/pocketbase"
 	"github.com/spf13/cobra"
@@ -50,13 +47,12 @@ func newIngestCommand(app *pocketbase.PocketBase) *cobra.Command {
 				return fmt.Errorf("youtube data api client: %w", err)
 			}
 
-			var claude anthropic.Client
+			var llm openAIClient
 			if !metadataOnly {
-				anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
-				if anthropicKey == "" {
-					return fmt.Errorf("ANTHROPIC_API_KEY is not set (use --metadata-only to skip categorization)")
+				var err error
+				if llm, err = newOpenAIClientFromEnv(); err != nil {
+					return fmt.Errorf("%w (use --metadata-only to skip categorization)", err)
 				}
-				claude = anthropic.NewClient(anthropicoption.WithAPIKey(anthropicKey))
 			}
 
 			ytdl := kkyoutube.Client{}
@@ -83,7 +79,7 @@ func newIngestCommand(app *pocketbase.PocketBase) *cobra.Command {
 					}
 
 					log.Printf("%s: categorizing %d transcript segments", videoID, len(transcript))
-					result, err = categorize(ctx, claude, transcript)
+					result, err = categorize(ctx, llm, transcript)
 					if err != nil {
 						return fmt.Errorf("%s: categorize: %w", videoID, err)
 					}
@@ -110,8 +106,13 @@ func newIngestCommand(app *pocketbase.PocketBase) *cobra.Command {
 					}
 				}
 				for _, o := range result.Openings {
+					// title is a required field; genre is the closest thing the
+					// transcript gives when the show never names the piece.
+					if o.Title == "" {
+						o.Title = o.Genre
+					}
 					if err := pb.InsertDraftOpening(app, episodeID, pb.DraftOpening{
-						Title:        o.Genre,
+						Title:        o.Title,
 						AuthorName:   o.AuthorName,
 						AuthorHandle: o.AuthorHandle,
 						Genre:        o.Genre,
@@ -149,6 +150,7 @@ type momentGuess struct {
 
 type openingGuess struct {
 	AtSeconds    int     `json:"at_seconds"`
+	Title        string  `json:"title"`
 	AuthorName   string  `json:"author_name"`
 	AuthorHandle string  `json:"author_handle"`
 	Genre        string  `json:"genre"`
@@ -156,7 +158,7 @@ type openingGuess struct {
 }
 
 var (
-	videoIDPattern       = regexp.MustCompile(`(?:v=|youtu\.be/|/embed/)([A-Za-z0-9_-]{6,})`)
+	videoIDPattern       = regexp.MustCompile(`(?:v=|youtu\.be/|/embed/|/live/|/shorts/)([A-Za-z0-9_-]{6,})`)
 	durationPattern      = regexp.MustCompile(`PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?`)
 	episodeNumberPattern = regexp.MustCompile(`(?i)DLSHOW\s*#?\s*(\d+)`)
 )
@@ -225,10 +227,10 @@ func parseEpisodeNumber(title string) int {
 	return n
 }
 
-// categorize sends the whole transcript to Claude in one pass and forces a
-// tool call, so the response is always the structured shape below rather
+// categorize sends the whole transcript to the model in one pass and forces a
+// function call, so the response is always the structured shape below rather
 // than prose that has to be parsed back out.
-func categorize(ctx context.Context, client anthropic.Client, transcript kkyoutube.VideoTranscript) (extraction, error) {
+func categorize(ctx context.Context, llm openAIClient, transcript kkyoutube.VideoTranscript) (extraction, error) {
 	var out extraction
 
 	typeSlugs := make([]string, 0, len(seed.MomentTypes))
@@ -238,8 +240,9 @@ func categorize(ctx context.Context, client anthropic.Client, transcript kkyoutu
 		fmt.Fprintf(&typeDocs, "- %s: %s\n", t.Slug, t.Description)
 	}
 
-	schema := anthropic.ToolInputSchemaParam{
-		Properties: map[string]any{
+	schema := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
 			"moments": map[string]any{
 				"type": "array",
 				"items": map[string]any{
@@ -259,6 +262,7 @@ func categorize(ctx context.Context, client anthropic.Client, transcript kkyoutu
 					"type": "object",
 					"properties": map[string]any{
 						"at_seconds":    map[string]any{"type": "integer"},
+						"title":         map[string]any{"type": "string", "description": "how the show introduces or describes this opening; empty string if it does not"},
 						"author_name":   map[string]any{"type": "string"},
 						"author_handle": map[string]any{"type": "string"},
 						"genre":         map[string]any{"type": "string"},
@@ -268,49 +272,32 @@ func categorize(ctx context.Context, client anthropic.Client, transcript kkyoutu
 				},
 			},
 		},
-		Required: []string{"moments", "openings"},
+		"required": []string{"moments", "openings"},
 	}
-
-	tool := anthropic.ToolUnionParamOfTool(schema, "record_extraction")
-	tool.OfTool.Description = param.NewOpt(
-		"Record every categorized moment and listener-submitted opening found in this transcript.",
-	)
 
 	prompt := fmt.Sprintf(
 		"This transcript is from a Brazilian YouTube talk show, in Portuguese. Each line is prefixed with its "+
 			"start time in seconds, like [90s].\n\n"+
 			"Find every moment that fits one of these recurring categories:\n%s\n"+
-			"Also find every listener-submitted opening/vinheta: the show plays one near the start, sent in by "+
-			"a viewer, usually announced with the sender's name.\n\n"+
+			"Also find every listener-submitted opening/vinheta: a piece of music or a jingle sent in by a "+
+			"viewer that the show plays, usually announced with the sender's name. It can happen at any point "+
+			"in the video, often more than 30 minutes in, so read the whole transcript.\n\n"+
 			"Only extract things that actually happen in the transcript, never invent one to fill a category. "+
 			"Copy at_seconds from the bracketed time of the line where it happens. confidence is your own 0-1 "+
 			"estimate of how sure you are this is a real instance of the category.\n\n%s",
 		typeDocs.String(), transcriptText(transcript),
 	)
 
-	message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:      anthropic.ModelClaudeSonnet5,
-		MaxTokens:  8192,
-		Tools:      []anthropic.ToolUnionParam{tool},
-		ToolChoice: anthropic.ToolChoiceParamOfTool("record_extraction"),
-		Messages: []anthropic.MessageParam{
-			anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)),
-		},
-	})
+	raw, err := llm.callFunction(ctx, "record_extraction",
+		"Record every categorized moment and listener-submitted opening found in this transcript.",
+		schema, prompt)
 	if err != nil {
 		return out, err
 	}
-
-	for _, block := range message.Content {
-		if block.Type != "tool_use" {
-			continue
-		}
-		if err := json.Unmarshal(block.Input, &out); err != nil {
-			return out, fmt.Errorf("parsing model output: %w", err)
-		}
-		return out, nil
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return out, fmt.Errorf("parsing model output: %w", err)
 	}
-	return out, fmt.Errorf("model did not return a tool_use block")
+	return out, nil
 }
 
 func transcriptText(t kkyoutube.VideoTranscript) string {
