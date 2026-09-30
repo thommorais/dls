@@ -77,7 +77,7 @@ type Dataset struct {
 // transcription yet, so they stay blank rather than invented.
 func Build() Dataset {
 	return Dataset{
-		Types:    momentTypes,
+		Types:    MomentTypes,
 		People:   people,
 		Songs:    songs,
 		Episodes: buildEpisodes(),

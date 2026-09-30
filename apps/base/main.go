@@ -26,6 +26,7 @@ func main() {
 		Automigrate: isGoRun,
 	})
 	app.RootCmd.AddCommand(newSeedCommand(app))
+	app.RootCmd.AddCommand(newIngestCommand(app))
 
 	// The schema is code, installed on every boot. It is idempotent, so a
 	// database that already has it is left alone.

@@ -191,6 +191,8 @@ func ensureOpenings(app core.App) error {
 		&core.NumberField{Name: "at_seconds"},
 		&core.DateField{Name: "aired_at"},
 		&core.TextField{Name: "media_url", Max: 500},
+		&core.SelectField{Name: "source", MaxSelect: 1, Values: []string{"manual", "llm", "algo"}},
+		&core.NumberField{Name: "confidence"},
 	)
 	c.Fields.Add(autodates()...)
 	c.AddIndex("idx_dls_openings_episode", false, "episode", "")
