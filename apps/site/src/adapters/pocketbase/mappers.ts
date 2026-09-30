@@ -18,7 +18,6 @@ import {
 	type MomentSource,
 	type MomentType,
 	type Opening,
-	type OpeningStatus,
 	type Overview,
 	type Person,
 	type PersonKind,
@@ -98,10 +97,8 @@ type WireOpening = {
 	genre?: string
 	episode?: string
 	at_seconds?: number
-	sent_at: string
 	aired_at?: string
 	media_url?: string
-	status: string
 }
 
 type WireArchive = {
@@ -251,10 +248,8 @@ const toOpening = (wire: WireOpening): Opening => ({
 	genre: wire.genre ?? '',
 	episode: wire.episode ? episodeId(wire.episode) : null,
 	atSeconds: wire.at_seconds ?? 0,
-	sentAt: toDate(wire.sent_at),
 	airedAt: toOptionalDate(wire.aired_at),
 	mediaUrl: wire.media_url ?? '',
-	status: wire.status as OpeningStatus,
 })
 
 const toArchiveEntry = (wire: WireArchive): ArchiveEntry => ({

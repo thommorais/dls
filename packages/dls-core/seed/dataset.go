@@ -32,8 +32,6 @@ type Opening struct {
 	AuthorHandle string
 	Genre        string
 	AtSeconds    int
-	SentAt       time.Time
-	Status       domain.OpeningStatus
 }
 
 type Episode struct {
@@ -124,7 +122,6 @@ func buildEpisodes() []Episode {
 			AuthorHandle: raw.Handle,
 			Genre:        raw.Genre,
 			AtSeconds:    raw.AtSeconds,
-			Status:       domain.OpeningAired,
 		})
 	}
 

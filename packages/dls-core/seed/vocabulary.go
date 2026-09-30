@@ -37,14 +37,3 @@ type Song struct {
 }
 
 var songs = []Song{}
-
-type openingSeed struct {
-	Title  string
-	Author string
-	Handle string
-	Genre  string
-}
-
-// The openings the audience sends in, from the "Aberturas dos Ouvintes"
-// sheet.
-var openings = []openingSeed{}

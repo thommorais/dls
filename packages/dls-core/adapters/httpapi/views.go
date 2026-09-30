@@ -184,10 +184,8 @@ type openingView struct {
 	Genre        string     `json:"genre,omitempty"`
 	Episode      string     `json:"episode,omitempty"`
 	AtSeconds    int        `json:"at_seconds,omitempty"`
-	SentAt       time.Time  `json:"sent_at"`
 	AiredAt      *time.Time `json:"aired_at,omitempty"`
 	MediaURL     string     `json:"media_url,omitempty"`
-	Status       string     `json:"status"`
 }
 
 func toOpeningViews(openings []domain.Opening) []openingView {
@@ -196,8 +194,8 @@ func toOpeningViews(openings []domain.Opening) []openingView {
 		out = append(out, openingView{
 			ID: string(o.ID), Title: o.Title, AuthorName: o.AuthorName,
 			AuthorHandle: o.AuthorHandle, Genre: o.Genre, Episode: string(o.EpisodeID),
-			AtSeconds: o.AtSeconds, SentAt: o.SentAt, AiredAt: o.AiredAt,
-			MediaURL: o.MediaURL, Status: string(o.Status),
+			AtSeconds: o.AtSeconds, AiredAt: o.AiredAt,
+			MediaURL: o.MediaURL,
 		})
 	}
 	return out

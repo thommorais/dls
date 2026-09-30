@@ -42,8 +42,7 @@ func TestTallyCountsEveryTypeOfMoment(t *testing.T) {
 		{ID: "a1", EpisodeID: "e1", PersonID: guest.ID, Role: domain.RoleGuest, IsInterview: true},
 	}
 	openings := []domain.Opening{
-		{ID: "o1", EpisodeID: "e1", Status: domain.OpeningAired},
-		{ID: "o2", Status: domain.OpeningReceived},
+		{ID: "o1", EpisodeID: "e1"},
 	}
 
 	got := rules.Tally(moments, appearances, cast(), openings)
@@ -138,7 +137,7 @@ func TestTallyByEpisodeSplitsTheCountersPerEpisode(t *testing.T) {
 		{ID: "a1", EpisodeID: "e2", PersonID: guest.ID, Role: domain.RoleGuest, IsInterview: true},
 	}
 	openings := []domain.Opening{
-		{ID: "o1", EpisodeID: "e1", Status: domain.OpeningAired},
+		{ID: "o1", EpisodeID: "e1"},
 	}
 
 	got := rules.TallyByEpisode(moments, appearances, cast(), openings)

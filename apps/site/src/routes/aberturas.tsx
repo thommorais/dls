@@ -25,9 +25,6 @@ function Openings() {
 
 	const { data: openings } = useQuery({ ...openingsQuery(container, search), initialData })
 
-	const aired = openings.filter(opening => opening.status === 'aired')
-	const inbox = openings.filter(opening => opening.status !== 'aired')
-
 	// The genre list comes from what is actually there, so a filter never
 	// offers an option that returns nothing.
 	const genres = [...new Set(openings.map(opening => opening.genre).filter(Boolean))].sort()
@@ -60,18 +57,17 @@ function Openings() {
 				))}
 			</div>
 
-			<div className='mb-5 grid gap-3 sm:grid-cols-2'>
-				<StatTile label='Já foram ao ar' value={aired.length} />
-				<StatTile label='Esperando na caixa de entrada' value={inbox.length} />
+			<div className='mb-5 grid gap-3'>
+				<StatTile label='Já foram ao ar' value={openings.length} />
 			</div>
 
-			<div className='grid gap-5 lg:grid-cols-2'>
+			<div className='grid gap-5'>
 				<Card title='No ar' subtitle='Com a data em que tocaram'>
-					{aired.length === 0 ? (
+					{openings.length === 0 ? (
 						<Empty>Nenhuma abertura no ar com esse filtro.</Empty>
 					) : (
 						<ul className='flex flex-col gap-2.5'>
-							{aired.map(opening => (
+							{openings.map(opening => (
 								<li key={opening.id} className='border-border border-b pb-2.5 last:border-0 last:pb-0'>
 									<div className='flex items-baseline justify-between gap-3'>
 										<p className='truncate text-sm font-medium'>{opening.title}</p>
@@ -79,23 +75,6 @@ function Openings() {
 											{opening.airedAt ? day.format(opening.airedAt) : null}
 										</span>
 									</div>
-									<p className='text-muted-foreground text-xs'>
-										{opening.authorName} {opening.authorHandle} · {opening.genre}
-									</p>
-								</li>
-							))}
-						</ul>
-					)}
-				</Card>
-
-				<Card title='Caixa de entrada' subtitle='Mandadas e ainda não usadas'>
-					{inbox.length === 0 ? (
-						<Empty>A caixa está vazia.</Empty>
-					) : (
-						<ul className='flex flex-col gap-2.5'>
-							{inbox.map(opening => (
-								<li key={opening.id} className='border-border border-b pb-2.5 last:border-0 last:pb-0'>
-									<p className='truncate text-sm font-medium'>{opening.title}</p>
 									<p className='text-muted-foreground text-xs'>
 										{opening.authorName} {opening.authorHandle} · {opening.genre}
 									</p>

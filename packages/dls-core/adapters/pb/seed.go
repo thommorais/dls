@@ -152,16 +152,9 @@ func Seed(app core.App, data seed.Dataset, reset bool) (Counts, error) {
 				rec.Set("author_name", opening.AuthorName)
 				rec.Set("author_handle", opening.AuthorHandle)
 				rec.Set("genre", opening.Genre)
-				setDate(rec, "sent_at", opening.SentAt)
-				rec.Set("status", string(opening.Status))
-				// Only an opening that aired belongs to an episode. The
-				// inbox has no episode at all, which is why it is read
-				// through its own query.
-				if opening.Status == domain.OpeningAired {
-					rec.Set("episode", episodeID)
-					rec.Set("at_seconds", opening.AtSeconds)
-					setDate(rec, "aired_at", episode.PublishedAt)
-				}
+				rec.Set("episode", episodeID)
+				rec.Set("at_seconds", opening.AtSeconds)
+				setDate(rec, "aired_at", episode.PublishedAt)
 			}); err != nil {
 				return counts, fmt.Errorf("opening %s: %w", opening.Title, err)
 			}

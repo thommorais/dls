@@ -45,7 +45,7 @@ type fixture struct {
 }
 
 // Two episodes of show: three questions to Ana, three songs broken into, two
-// women interviewed, two openings aired and one still in the inbox.
+// women interviewed, two openings aired.
 func newFixture() *fixture {
 	f := &fixture{
 		episodes: &fakeEpisodes{items: []domain.Episode{
@@ -67,9 +67,8 @@ func newFixture() *fixture {
 			{ID: "a3", EpisodeID: "e2", PersonID: "p-guest", Role: domain.RoleGuest, IsInterview: true},
 		}},
 		openings: &fakeOpenings{items: []domain.Opening{
-			{ID: "o1", EpisodeID: "e1", Status: domain.OpeningAired, Genre: "forró"},
-			{ID: "o2", EpisodeID: "e2", Status: domain.OpeningAired, Genre: "rock"},
-			{ID: "o3", Status: domain.OpeningReceived, Genre: "rock"},
+			{ID: "o1", EpisodeID: "e1", Genre: "forró"},
+			{ID: "o2", EpisodeID: "e2", Genre: "rock"},
 		}},
 		people: &fakePeople{items: []domain.Person{
 			{ID: "p-caue", Slug: "caue", Name: "Cauê", Kind: domain.PersonHost, Gender: domain.GenderMan},
@@ -285,8 +284,8 @@ func TestOpeningsPassTheGenreToStorage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(got) != 2 {
-		t.Errorf("got %d openings, want the 2 rock ones", len(got))
+	if len(got) != 1 {
+		t.Errorf("got %d openings, want the 1 rock one", len(got))
 	}
 	if f.openings.lastFilter.Genre != "rock" {
 		t.Errorf("filter = %+v, want the genre passed through", f.openings.lastFilter)

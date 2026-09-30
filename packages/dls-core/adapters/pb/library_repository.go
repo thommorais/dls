@@ -88,10 +88,8 @@ func toOpening(rec *core.Record) domain.Opening {
 		Genre:        rec.GetString("genre"),
 		EpisodeID:    domain.EpisodeID(rec.GetString("episode")),
 		AtSeconds:    rec.GetInt("at_seconds"),
-		SentAt:       timeOf(rec, "sent_at"),
 		AiredAt:      timePtrOf(rec, "aired_at"),
 		MediaURL:     rec.GetString("media_url"),
-		Status:       domain.OpeningStatus(rec.GetString("status")),
 	}
 }
 
@@ -115,18 +113,16 @@ func (r *OpeningRepository) List(_ context.Context, filter domain.Filter) ([]dom
 		where = append(where, "genre = {:genre}")
 		params["genre"] = filter.Genre
 	}
-	// An opening is dated by when it was sent, not by an episode: the inbox
-	// has to be listable before anything airs.
 	if from := dateString(filter.From); from != "" {
-		where = append(where, "sent_at >= {:from}")
+		where = append(where, "aired_at >= {:from}")
 		params["from"] = from
 	}
 	if to := dateString(filter.To); to != "" {
-		where = append(where, "sent_at <= {:to}")
+		where = append(where, "aired_at <= {:to}")
 		params["to"] = to
 	}
 
-	records, err := r.app.FindRecordsByFilter(ColOpenings, strings.Join(where, " && "), "-sent_at", 0, 0, params)
+	records, err := r.app.FindRecordsByFilter(ColOpenings, strings.Join(where, " && "), "-aired_at", 0, 0, params)
 	if err != nil {
 		return nil, mapErr(err)
 	}

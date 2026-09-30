@@ -187,18 +187,13 @@ func ensureOpenings(app core.App) error {
 		&core.TextField{Name: "author_name", Max: 120},
 		&core.TextField{Name: "author_handle", Max: 120},
 		&core.TextField{Name: "genre", Max: 80},
-		// Empty until it airs, which is what separates the inbox from the
-		// library.
 		&core.RelationField{Name: "episode", CollectionId: episodes.Id, MaxSelect: 1},
 		&core.NumberField{Name: "at_seconds"},
-		&core.DateField{Name: "sent_at"},
 		&core.DateField{Name: "aired_at"},
 		&core.TextField{Name: "media_url", Max: 500},
-		&core.SelectField{Name: "status", Required: true, MaxSelect: 1, Values: []string{"received", "aired", "archived"}},
 	)
 	c.Fields.Add(autodates()...)
 	c.AddIndex("idx_dls_openings_episode", false, "episode", "")
-	c.AddIndex("idx_dls_openings_status", false, "status", "")
 
 	return app.Save(c)
 }

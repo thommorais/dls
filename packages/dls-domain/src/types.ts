@@ -32,14 +32,12 @@ export const archiveId = (value: string): ArchiveId => value as ArchiveId
  * collection, so their slugs cannot be enumerated at build time.
  */
 export const ARCHIVE_KINDS = ['about', 'glossary', 'segment', 'trivia', 'bio', 'milestone'] as const
-export const OPENING_STATUSES = ['received', 'aired', 'archived'] as const
 export const PERSON_KINDS = ['host', 'guest', 'staff'] as const
 export const GENDERS = ['woman', 'man', 'nonbinary', 'unknown'] as const
 export const APPEARANCE_ROLES = ['host', 'guest', 'remote'] as const
 export const MOMENT_SOURCES = ['manual', 'llm', 'algo'] as const
 
 export type ArchiveKind = (typeof ARCHIVE_KINDS)[number]
-export type OpeningStatus = (typeof OPENING_STATUSES)[number]
 export type PersonKind = (typeof PERSON_KINDS)[number]
 export type Gender = (typeof GENDERS)[number]
 export type AppearanceRole = (typeof APPEARANCE_ROLES)[number]
@@ -129,10 +127,8 @@ export type Opening = {
 	readonly genre: string
 	readonly episode: EpisodeId | null
 	readonly atSeconds: number
-	readonly sentAt: Date
 	readonly airedAt: Date | null
 	readonly mediaUrl: string
-	readonly status: OpeningStatus
 }
 
 export type ArchiveEntry = {

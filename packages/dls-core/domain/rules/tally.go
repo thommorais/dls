@@ -33,11 +33,7 @@ func Tally(
 		}
 	}
 
-	for _, opening := range openings {
-		if opening.Status == domain.OpeningAired {
-			tally.OpeningsAired++
-		}
-	}
+	tally.OpeningsAired = len(openings)
 
 	return tally
 }
@@ -82,9 +78,6 @@ func TallyByEpisode(
 	}
 
 	for _, opening := range openings {
-		if opening.Status != domain.OpeningAired {
-			continue
-		}
 		tally := at(opening.EpisodeID)
 		tally.OpeningsAired++
 		out[opening.EpisodeID] = tally
