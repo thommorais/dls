@@ -30,13 +30,22 @@ func newIngestCommand(app *pocketbase.PocketBase) *cobra.Command {
 	var dryRun bool
 	var metadataOnly bool
 	var lang string
+	var channel string
+	var listOnly bool
 
 	cmd := &cobra.Command{
 		Use:          "ingest [video-id-or-url...]",
 		Short:        "Fetch a video's metadata and transcript, and draft its facts and openings",
-		Args:         cobra.MinimumNArgs(1),
+		Args:         cobra.ArbitraryArgs,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 && channel == "" {
+				return fmt.Errorf("give at least one video id or url, or --channel")
+			}
+			if listOnly && channel == "" {
+				return fmt.Errorf("--list needs --channel")
+			}
+
 			// Checked before any network call, so a typo fails in milliseconds
 			// rather than after the first video's transcript download.
 			videoIDs := make([]string, 0, len(args))
@@ -53,14 +62,6 @@ func newIngestCommand(app *pocketbase.PocketBase) *cobra.Command {
 				return fmt.Errorf("YOUTUBE_API_KEY is not set")
 			}
 
-			var llm openAIClient
-			if !metadataOnly {
-				var err error
-				if llm, err = newOpenAIClientFromEnv(); err != nil {
-					return fmt.Errorf("%w (use --metadata-only to skip categorization)", err)
-				}
-			}
-
 			// Ctrl-C cancels the in-flight request instead of waiting for it.
 			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt)
 			defer stop()
@@ -68,6 +69,28 @@ func newIngestCommand(app *pocketbase.PocketBase) *cobra.Command {
 			ytData, err := youtubedata.NewService(ctx, googleoption.WithAPIKey(youtubeKey))
 			if err != nil {
 				return fmt.Errorf("youtube data api client: %w", err)
+			}
+
+			if channel != "" {
+				fromChannel, err := channelVideoIDs(ctx, ytData, channel)
+				if err != nil {
+					return err
+				}
+				log.Printf("%s: %d distinct videos across its playlists", channel, len(fromChannel))
+				videoIDs = append(videoIDs, fromChannel...)
+			}
+			if listOnly {
+				for _, id := range videoIDs {
+					fmt.Println(id)
+				}
+				return nil
+			}
+
+			var llm openAIClient
+			if !metadataOnly {
+				if llm, err = newOpenAIClientFromEnv(); err != nil {
+					return fmt.Errorf("%w (use --metadata-only to skip categorization)", err)
+				}
 			}
 
 			run := ingestRun{app: app, ytData: ytData, ytdl: kkyoutube.Client{}, llm: llm, dryRun: dryRun, metadataOnly: metadataOnly, lang: lang}
@@ -100,6 +123,8 @@ func newIngestCommand(app *pocketbase.PocketBase) *cobra.Command {
 
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "fetch and categorize, but do not write to the database")
 	cmd.Flags().BoolVar(&metadataOnly, "metadata-only", false, "only fetch title/duration/publish date, skip the transcript and LLM step")
+	cmd.Flags().StringVar(&channel, "channel", "", "also ingest every video in this channel's playlists, e.g. @descealetrashow")
+	cmd.Flags().BoolVar(&listOnly, "list", false, "with --channel, print the video ids and stop without fetching or spending anything")
 	cmd.Flags().StringVar(&lang, "lang", "pt", "transcript language code")
 	return cmd
 }
