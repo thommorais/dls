@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"regexp"
 	"strconv"
 	"strings"
@@ -32,19 +33,25 @@ func newIngestCommand(app *pocketbase.PocketBase) *cobra.Command {
 	var lang string
 
 	cmd := &cobra.Command{
-		Use:   "ingest [video-id-or-url...]",
-		Short: "Fetch a video's metadata and transcript, and draft its moments",
-		Args:  cobra.MinimumNArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
+		Use:          "ingest [video-id-or-url...]",
+		Short:        "Fetch a video's metadata and transcript, and draft its moments",
+		Args:         cobra.MinimumNArgs(1),
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// Checked before any network call, so a typo fails in milliseconds
+			// rather than after the first video's transcript download.
+			videoIDs := make([]string, 0, len(args))
+			for _, arg := range args {
+				id := extractVideoID(arg)
+				if !videoIDShape.MatchString(id) {
+					return fmt.Errorf("%q is not a YouTube video id or url (expected 11 characters like Vme7qk9NECM)", arg)
+				}
+				videoIDs = append(videoIDs, id)
+			}
+
 			youtubeKey := os.Getenv("YOUTUBE_API_KEY")
 			if youtubeKey == "" {
 				return fmt.Errorf("YOUTUBE_API_KEY is not set")
-			}
-
-			ctx := context.Background()
-			ytData, err := youtubedata.NewService(ctx, googleoption.WithAPIKey(youtubeKey))
-			if err != nil {
-				return fmt.Errorf("youtube data api client: %w", err)
 			}
 
 			var llm openAIClient
@@ -55,74 +62,38 @@ func newIngestCommand(app *pocketbase.PocketBase) *cobra.Command {
 				}
 			}
 
-			ytdl := kkyoutube.Client{}
+			// Ctrl-C cancels the in-flight request instead of waiting for it.
+			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt)
+			defer stop()
 
-			for _, arg := range args {
-				videoID := extractVideoID(arg)
-				log.Printf("%s: fetching metadata", videoID)
+			ytData, err := youtubedata.NewService(ctx, googleoption.WithAPIKey(youtubeKey))
+			if err != nil {
+				return fmt.Errorf("youtube data api client: %w", err)
+			}
 
-				episode, err := fetchMetadata(ctx, ytData, videoID)
-				if err != nil {
-					return fmt.Errorf("%s: metadata: %w", videoID, err)
+			run := ingestRun{app: app, ytData: ytData, ytdl: kkyoutube.Client{}, llm: llm, dryRun: dryRun, metadataOnly: metadataOnly, lang: lang}
+
+			// One bad video must not throw away the ones that worked, so each
+			// failure is recorded and the run carries on.
+			failed := map[string]error{}
+			succeeded := 0
+			for _, videoID := range videoIDs {
+				if ctx.Err() != nil {
+					break
 				}
-
-				var result extraction
-				if !metadataOnly {
-					log.Printf("%s: fetching transcript", videoID)
-					video, err := ytdl.GetVideo(videoID)
-					if err != nil {
-						return fmt.Errorf("%s: video info: %w", videoID, err)
-					}
-					transcript, err := ytdl.GetTranscript(video, lang)
-					if err != nil {
-						return fmt.Errorf("%s: transcript: %w", videoID, err)
-					}
-
-					log.Printf("%s: categorizing %d transcript segments", videoID, len(transcript))
-					result, err = categorize(ctx, llm, transcript)
-					if err != nil {
-						return fmt.Errorf("%s: categorize: %w", videoID, err)
-					}
-				}
-
-				if dryRun {
-					printDraft(videoID, episode, result)
+				if err := run.video(ctx, videoID); err != nil {
+					log.Printf("%s: FAILED: %v", videoID, err)
+					failed[videoID] = err
 					continue
 				}
+				succeeded++
+			}
 
-				episodeID, err := pb.UpsertEpisode(app, episode)
-				if err != nil {
-					return fmt.Errorf("%s: upsert episode: %w", videoID, err)
-				}
-
-				for _, m := range result.Moments {
-					if err := pb.InsertDraftMoment(app, episodeID, pb.DraftMoment{
-						TypeSlug:       m.TypeSlug,
-						VideoTimestamp: m.AtSeconds,
-						Summary:        m.Summary,
-						Confidence:     m.Confidence,
-					}); err != nil {
-						return fmt.Errorf("%s: moment at %ds: %w", videoID, m.AtSeconds, err)
-					}
-				}
-				for _, o := range result.Openings {
-					// title is a required field; genre is the closest thing the
-					// transcript gives when the show never names the piece.
-					if o.Title == "" {
-						o.Title = o.Genre
-					}
-					if err := pb.InsertDraftOpening(app, episodeID, pb.DraftOpening{
-						Title:        o.Title,
-						AuthorName:   o.AuthorName,
-						AuthorHandle: o.AuthorHandle,
-						Genre:        o.Genre,
-						AtSeconds:    o.AtSeconds,
-						Confidence:   o.Confidence,
-					}); err != nil {
-						return fmt.Errorf("%s: opening at %ds: %w", videoID, o.AtSeconds, err)
-					}
-				}
-				log.Printf("%s: drafted %d moments, %d openings", videoID, len(result.Moments), len(result.Openings))
+			if ctx.Err() != nil {
+				return fmt.Errorf("interrupted: %d of %d videos done, %d failed", succeeded, len(videoIDs), len(failed))
+			}
+			if len(failed) > 0 {
+				return fmt.Errorf("%d of %d videos failed; re-running is safe, entries already written are skipped", len(failed), len(videoIDs))
 			}
 			return nil
 		},
@@ -159,6 +130,7 @@ type openingGuess struct {
 
 var (
 	videoIDPattern       = regexp.MustCompile(`(?:v=|youtu\.be/|/embed/|/live/|/shorts/)([A-Za-z0-9_-]{6,})`)
+	videoIDShape         = regexp.MustCompile(`^[A-Za-z0-9_-]{11}$`)
 	durationPattern      = regexp.MustCompile(`PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?`)
 	episodeNumberPattern = regexp.MustCompile(`(?i)DLSHOW\s*#?\s*(\d+)`)
 )
@@ -230,7 +202,7 @@ func parseEpisodeNumber(title string) int {
 // categorize sends the whole transcript to the model in one pass and forces a
 // function call, so the response is always the structured shape below rather
 // than prose that has to be parsed back out.
-func categorize(ctx context.Context, llm openAIClient, transcript kkyoutube.VideoTranscript) (extraction, error) {
+func categorize(ctx context.Context, llm openAIClient, transcript []transcriptSegment) (extraction, error) {
 	var out extraction
 
 	typeSlugs := make([]string, 0, len(seed.MomentTypes))
@@ -300,7 +272,7 @@ func categorize(ctx context.Context, llm openAIClient, transcript kkyoutube.Vide
 	return out, nil
 }
 
-func transcriptText(t kkyoutube.VideoTranscript) string {
+func transcriptText(t []transcriptSegment) string {
 	var b strings.Builder
 	for _, seg := range t {
 		fmt.Fprintf(&b, "[%ds] %s\n", seg.StartMs/1000, strings.TrimSpace(seg.Text))
