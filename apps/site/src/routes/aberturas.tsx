@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { parseFilter } from '@thom/dls-domain/filter'
-import { openingsQuery } from '_/app/queries'
+import { youtubeLink } from '@thom/dls-domain/format'
+import { episodesQuery, openingsQuery } from '_/app/queries'
 import { Card, Empty } from '_/components/card'
+import type { Opening } from '@thom/dls-domain/types'
 import { PageHeader } from '_/components/page-header'
 import { StatTile } from '_/components/stat-tile'
 
@@ -12,7 +14,13 @@ export const Route = createFileRoute('/aberturas')({
 	// same codec validates it here and builds the request.
 	validateSearch: (search: Record<string, unknown>) => parseFilter(search),
 	loaderDeps: ({ search }) => search,
-	loader: ({ context, deps }) => context.queryClient.ensureQueryData(openingsQuery(context.container, deps)),
+	loader: async ({ context, deps }) => {
+		const [openings, episodes] = await Promise.all([
+			context.queryClient.ensureQueryData(openingsQuery(context.container, deps)),
+			context.queryClient.ensureQueryData(episodesQuery(context.container)),
+		])
+		return { openings, episodes }
+	},
 	component: Openings,
 })
 
@@ -21,9 +29,15 @@ const day = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit',
 function Openings() {
 	const { container } = Route.useRouteContext()
 	const search = Route.useSearch()
-	const initialData = Route.useLoaderData()
+	const initial = Route.useLoaderData()
 
-	const { data: openings } = useQuery({ ...openingsQuery(container, search), initialData })
+	const { data: openings } = useQuery({ ...openingsQuery(container, search), initialData: initial.openings })
+	const { data: episodes } = useQuery({ ...episodesQuery(container), initialData: initial.episodes })
+
+	const youtubeIds = new Map(episodes.map(episode => [episode.id, episode.youtubeId]))
+
+	const watchHref = (opening: Opening) =>
+		opening.episode ? youtubeLink(youtubeIds.get(opening.episode) ?? '', opening.atSeconds) : ''
 
 	// The genre list comes from what is actually there, so a filter never
 	// offers an option that returns nothing.
@@ -77,6 +91,19 @@ function Openings() {
 									</div>
 									<p className='text-muted-foreground text-xs'>
 										{opening.authorName} {opening.authorHandle} · {opening.genre}
+										{watchHref(opening) ? (
+											<>
+												{' · '}
+												<a
+													href={watchHref(opening)}
+													target='_blank'
+													rel='noreferrer'
+													className='hover:text-foreground underline-offset-2 hover:underline'
+												>
+													assistir
+												</a>
+											</>
+										) : null}
 									</p>
 								</li>
 							))}
