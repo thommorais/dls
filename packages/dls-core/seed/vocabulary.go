@@ -1,6 +1,5 @@
-// Package seed holds the development dataset. Content comes from the real
-// show's own records (see apps/site/public for the source spreadsheet) as it
-// is transcribed; until then, this stays empty rather than inventing numbers.
+// Package seed holds the development dataset. It stays empty until a reliable
+// source for the show's records exists, rather than inventing numbers.
 package seed
 
 import "dls/dls-core/domain"
@@ -11,10 +10,8 @@ const (
 	ChannelHandle = "@descealetrashow"
 )
 
-// MomentTypes is the show's vocabulary of recurring bits. Each one here is
-// backed by a real sheet in the source spreadsheet (apps/site/public),
-// transcribed from the show's own episodes. The ingest tool also reads this
-// list, so a category only exists once, in one place.
+// MomentTypes is the show's vocabulary of recurring bits. The ingest tool
+// also reads this list, so a category only exists once, in one place.
 var MomentTypes = []domain.MomentType{
 	{Slug: "saiu-cantando", Label: "Saiu cantando", Color: "#10B981", Position: 1,
 		Description: "Uma palavra ou assunto qualquer lembra uma música e o episódio para para cantar."},

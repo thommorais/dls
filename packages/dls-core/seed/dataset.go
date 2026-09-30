@@ -1,8 +1,6 @@
 package seed
 
 import (
-	"fmt"
-	"sort"
 	"time"
 
 	"dls/dls-core/domain"
@@ -71,60 +69,14 @@ type Dataset struct {
 	Archive  []ArchiveEntry
 }
 
-// Build returns the dataset. Episodes, their moments and their openings come
-// from data.go, transcribed from the show's own spreadsheet (see
-// apps/site/public). Titles, publish dates and durations aren't in that
-// transcription yet, so they stay blank rather than invented.
+// Build returns the dataset. It is empty until a reliable source for the
+// show's episodes, moments and openings exists; nothing is invented meanwhile.
 func Build() Dataset {
 	return Dataset{
 		Types:    MomentTypes,
 		People:   people,
 		Songs:    songs,
-		Episodes: buildEpisodes(),
+		Episodes: []Episode{},
 		Archive:  archiveEntries(),
 	}
-}
-
-func buildEpisodes() []Episode {
-	byNumber := make(map[int]*Episode, len(rawEpisodes))
-	episodes := make([]Episode, len(rawEpisodes))
-	for i, raw := range rawEpisodes {
-		episodes[i] = Episode{
-			Number:       raw.Number,
-			Slug:         fmt.Sprintf("ep-%d", raw.Number),
-			Title:        fmt.Sprintf("Episódio %d", raw.Number),
-			YouTubeID:    raw.YouTubeID,
-			ThumbnailURL: fmt.Sprintf("https://img.youtube.com/vi/%s/hqdefault.jpg", raw.YouTubeID),
-		}
-		byNumber[raw.Number] = &episodes[i]
-	}
-
-	for _, raw := range rawMoments {
-		episode, ok := byNumber[raw.EpisodeNumber]
-		if !ok {
-			continue
-		}
-		episode.Moments = append(episode.Moments, Moment{
-			TypeSlug:       raw.TypeSlug,
-			VideoTimestamp: raw.AtSeconds,
-			Summary:        raw.Summary,
-		})
-	}
-
-	for _, raw := range rawOpenings {
-		episode, ok := byNumber[raw.EpisodeNumber]
-		if !ok {
-			continue
-		}
-		episode.Openings = append(episode.Openings, Opening{
-			Title:        raw.Title,
-			AuthorName:   raw.Author,
-			AuthorHandle: raw.Handle,
-			Genre:        raw.Genre,
-			AtSeconds:    raw.AtSeconds,
-		})
-	}
-
-	sort.Slice(episodes, func(i, j int) bool { return episodes[i].Number < episodes[j].Number })
-	return episodes
 }
