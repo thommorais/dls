@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const okBody = `{"choices":[{"finish_reason":"stop","message":{"tool_calls":[{"function":{"arguments":"{\"moments\":[],\"openings\":[]}"}}]}}]}`
+const okBody = `{"choices":[{"finish_reason":"stop","message":{"tool_calls":[{"function":{"arguments":"{\"openings\":[],\"facts\":[]}"}}]}}]}`
 
 func clientFor(url string) openAIClient {
 	return openAIClient{apiKey: "k", model: "m", url: url, http: &http.Client{Timeout: time.Second}}

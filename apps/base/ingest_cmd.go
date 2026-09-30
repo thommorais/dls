@@ -19,11 +19,10 @@ import (
 	youtubedata "google.golang.org/api/youtube/v3"
 
 	"dls/dls-core/adapters/pb"
-	"dls/dls-core/seed"
 )
 
 // newIngestCommand turns a YouTube video into draft data: real metadata from
-// the YouTube Data API, and moments/openings an LLM picked out of the
+// the YouTube Data API, and facts/openings an LLM picked out of the
 // transcript. Everything it writes carries source "llm" and a confidence
 // score, so it sits in the same tables as the hand-checked data but stays
 // visibly a draft until a human confirms it.
@@ -34,7 +33,7 @@ func newIngestCommand(app *pocketbase.PocketBase) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:          "ingest [video-id-or-url...]",
-		Short:        "Fetch a video's metadata and transcript, and draft its moments",
+		Short:        "Fetch a video's metadata and transcript, and draft its facts and openings",
 		Args:         cobra.MinimumNArgs(1),
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -108,15 +107,8 @@ func newIngestCommand(app *pocketbase.PocketBase) *cobra.Command {
 // extraction is what one categorization pass returns: guesses, each with the
 // model's own confidence, not facts.
 type extraction struct {
-	Moments  []momentGuess  `json:"moments"`
 	Openings []openingGuess `json:"openings"`
-}
-
-type momentGuess struct {
-	TypeSlug   string  `json:"type_slug"`
-	AtSeconds  int     `json:"at_seconds"`
-	Summary    string  `json:"summary"`
-	Confidence float64 `json:"confidence"`
+	Facts    []pb.DraftFact `json:"facts"`
 }
 
 type openingGuess struct {
@@ -205,29 +197,9 @@ func parseEpisodeNumber(title string) int {
 func categorize(ctx context.Context, llm openAIClient, transcript []transcriptSegment) (extraction, error) {
 	var out extraction
 
-	typeSlugs := make([]string, 0, len(seed.MomentTypes))
-	var typeDocs strings.Builder
-	for _, t := range seed.MomentTypes {
-		typeSlugs = append(typeSlugs, t.Slug)
-		fmt.Fprintf(&typeDocs, "- %s: %s\n", t.Slug, t.Description)
-	}
-
 	schema := map[string]any{
 		"type": "object",
 		"properties": map[string]any{
-			"moments": map[string]any{
-				"type": "array",
-				"items": map[string]any{
-					"type": "object",
-					"properties": map[string]any{
-						"type_slug":  map[string]any{"type": "string", "enum": typeSlugs},
-						"at_seconds": map[string]any{"type": "integer"},
-						"summary":    map[string]any{"type": "string"},
-						"confidence": map[string]any{"type": "number"},
-					},
-					"required": []string{"type_slug", "at_seconds", "summary", "confidence"},
-				},
-			},
 			"openings": map[string]any{
 				"type": "array",
 				"items": map[string]any{
@@ -243,25 +215,47 @@ func categorize(ctx context.Context, llm openAIClient, transcript []transcriptSe
 					"required": []string{"at_seconds", "author_name", "genre", "confidence"},
 				},
 			},
+			"facts": map[string]any{
+				"type": "array",
+				"items": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"kind":       map[string]any{"type": "string", "description": "kebab-case label for the event, reusing the kinds named in the instructions when one fits"},
+						"at_seconds": map[string]any{"type": "integer"},
+						"who":        map[string]any{"type": "string", "description": "the person the event is about, as the transcript names them; empty string if nobody"},
+						"summary":    map[string]any{"type": "string", "description": "one sentence in Portuguese, close to what was said"},
+						"trigger":    map[string]any{"type": "string", "description": "what set the event off, when the transcript shows it; empty string otherwise"},
+						"confidence": map[string]any{"type": "number"},
+					},
+					"required": []string{"kind", "at_seconds", "who", "summary", "trigger", "confidence"},
+				},
+			},
 		},
-		"required": []string{"moments", "openings"},
+		"required": []string{"openings", "facts"},
 	}
 
 	prompt := fmt.Sprintf(
 		"This transcript is from a Brazilian YouTube talk show, in Portuguese. Each line is prefixed with its "+
 			"start time in seconds, like [90s].\n\n"+
-			"Find every moment that fits one of these recurring categories:\n%s\n"+
-			"Also find every listener-submitted opening/vinheta: a piece of music or a jingle sent in by a "+
+			"Find every listener-submitted opening/vinheta: a piece of music or a jingle sent in by a "+
 			"viewer that the show plays, usually announced with the sender's name. It can happen at any point "+
 			"in the video, often more than 30 minutes in, so read the whole transcript.\n\n"+
+			"Also record facts: discrete events used to build per-episode stats. Use these kinds when they "+
+			"apply, and add a new kebab-case kind for any other recurring, countable running joke or event:\n"+
+			"- load-ghost-gesture: Load makes or mentions the gesture that evokes a sexual act with a ghost\n"+
+			"- cae-poor-sleep: Caê complains about having slept badly\n"+
+			"- cae-late: Caê arrives late or is mentioned as late\n"+
+			"- technical-issue: audio, video, connection or equipment trouble\n"+
+			"- singing-start: the table starts singing; put what set it off in trigger\n"+
+			"One entry per occurrence, never a total.\n\n"+
 			"Only extract things that actually happen in the transcript, never invent one to fill a category. "+
 			"Copy at_seconds from the bracketed time of the line where it happens. confidence is your own 0-1 "+
 			"estimate of how sure you are this is a real instance of the category.\n\n%s",
-		typeDocs.String(), transcriptText(transcript),
+		transcriptText(transcript),
 	)
 
 	raw, err := llm.callFunction(ctx, "record_extraction",
-		"Record every categorized moment and listener-submitted opening found in this transcript.",
+		"Record every listener-submitted opening and countable fact found in this transcript.",
 		schema, prompt)
 	if err != nil {
 		return out, err

@@ -20,6 +20,7 @@ func Register(app core.App) error {
 		{"people", ensurePeople},
 		{"moment types", ensureMomentTypes},
 		{"episodes", ensureEpisodes},
+		{"episode facts", ensureEpisodeFacts},
 		{"appearances", ensureAppearances},
 		{"moments", ensureMoments},
 		{"openings", ensureOpenings},

@@ -96,6 +96,20 @@ func ensureEpisodes(app core.App) error {
 	return app.Save(c)
 }
 
+// ensureEpisodeFacts adds the facts field to a database created before it
+// existed; ensureEpisodes only runs on a fresh one.
+func ensureEpisodeFacts(app core.App) error {
+	c, err := app.FindCollectionByNameOrId(ColEpisodes)
+	if err != nil {
+		return err
+	}
+	if c.Fields.GetByName("facts") != nil {
+		return nil
+	}
+	c.Fields.Add(&core.JSONField{Name: "facts", MaxSize: 500000})
+	return app.Save(c)
+}
+
 func ensureAppearances(app core.App) error {
 	if _, ok := find(app, ColAppearances); ok {
 		return nil

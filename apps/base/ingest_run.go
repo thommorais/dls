@@ -52,8 +52,8 @@ func (r ingestRun) video(ctx context.Context, videoID string) error {
 		if result, err = categorize(ctx, r.llm, transcript); err != nil {
 			return fmt.Errorf("categorize: %w", err)
 		}
-		if len(result.Moments) == 0 && len(result.Openings) == 0 {
-			log.Printf("%s: WARNING: the model found no moments or openings, check the transcript language and the model", videoID)
+		if len(result.Openings) == 0 && len(result.Facts) == 0 {
+			log.Printf("%s: WARNING: the model found no facts or openings, check the transcript language and the model", videoID)
 		}
 	}
 
@@ -71,18 +71,6 @@ func (r ingestRun) video(ctx context.Context, videoID string) error {
 	// the rest: entries are deduplicated by second, so a re-run fills the gaps.
 	var saveErrs []error
 	saved := 0
-	for _, m := range result.Moments {
-		if err := pb.InsertDraftMoment(r.app, episodeID, pb.DraftMoment{
-			TypeSlug:       m.TypeSlug,
-			VideoTimestamp: m.AtSeconds,
-			Summary:        m.Summary,
-			Confidence:     m.Confidence,
-		}); err != nil {
-			saveErrs = append(saveErrs, fmt.Errorf("moment at %ds: %w", m.AtSeconds, err))
-			continue
-		}
-		saved++
-	}
 	for _, o := range result.Openings {
 		// title is a required field; genre is the closest thing the
 		// transcript gives when the show never names the piece.
@@ -103,8 +91,14 @@ func (r ingestRun) video(ctx context.Context, videoID string) error {
 		saved++
 	}
 
-	log.Printf("%s: saved %d of %d entries (%d moments, %d openings found)",
-		videoID, saved, len(result.Moments)+len(result.Openings), len(result.Moments), len(result.Openings))
+	if !r.metadataOnly {
+		if err := pb.SetEpisodeFacts(r.app, episodeID, result.Facts); err != nil {
+			saveErrs = append(saveErrs, fmt.Errorf("facts: %w", err))
+		}
+	}
+
+	log.Printf("%s: %d facts; saved %d of %d openings",
+		videoID, len(result.Facts), saved, len(result.Openings))
 	if len(saveErrs) > 0 {
 		return fmt.Errorf("%d entries not saved: %w", len(saveErrs), errors.Join(saveErrs...))
 	}

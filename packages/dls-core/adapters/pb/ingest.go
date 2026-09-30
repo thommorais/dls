@@ -47,6 +47,32 @@ type DraftOpening struct {
 	Confidence   float64
 }
 
+// DraftFact is one observed event in an episode, the raw material for the
+// channel's stats. Kind is free-form so a new stat needs no migration.
+type DraftFact struct {
+	Kind       string  `json:"kind"`
+	AtSeconds  int     `json:"at_seconds"`
+	Who        string  `json:"who"`
+	Summary    string  `json:"summary"`
+	Trigger    string  `json:"trigger,omitempty"`
+	Confidence float64 `json:"confidence"`
+}
+
+// SetEpisodeFacts replaces the episode's facts. Unlike the metadata fields
+// there is nothing to preserve: facts are derived from the transcript, and
+// a re-run with a better prompt should supersede the last one.
+func SetEpisodeFacts(app core.App, episodeID string, facts []DraftFact) error {
+	rec, err := app.FindRecordById(ColEpisodes, episodeID)
+	if err != nil {
+		return mapErr(err)
+	}
+	if facts == nil {
+		facts = []DraftFact{}
+	}
+	setJSON(rec, "facts", facts)
+	return app.Save(rec)
+}
+
 // UpsertEpisode finds the episode for a YouTube video, or creates it. An
 // episode that already exists only has its blank or placeholder fields
 // filled in (a real title replaces "Episódio 648", a zero duration gets a
