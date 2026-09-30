@@ -34,10 +34,13 @@ function Openings() {
 	const { data: openings } = useQuery({ ...openingsQuery(container, search), initialData: initial.openings })
 	const { data: episodes } = useQuery({ ...episodesQuery(container), initialData: initial.episodes })
 
-	const youtubeIds = new Map(episodes.map(episode => [episode.id, episode.youtubeId]))
+	const episodeById = new Map(episodes.map(episode => [episode.id, episode]))
 
-	const watchHref = (opening: Opening) =>
-		opening.episode ? youtubeLink(youtubeIds.get(opening.episode) ?? '', opening.atSeconds) : ''
+	const watchOf = (opening: Opening) => {
+		const episode = opening.episode ? episodeById.get(opening.episode) : undefined
+		const href = episode ? youtubeLink(episode.youtubeId, opening.atSeconds) : ''
+		return episode && href ? { href, title: episode.title } : null
+	}
 
 	// The genre list comes from what is actually there, so a filter never
 	// offers an option that returns nothing.
@@ -91,19 +94,7 @@ function Openings() {
 									</div>
 									<p className='text-muted-foreground text-xs'>
 										{opening.authorName} {opening.authorHandle} · {opening.genre}
-										{watchHref(opening) ? (
-											<>
-												{' · '}
-												<a
-													href={watchHref(opening)}
-													target='_blank'
-													rel='noreferrer'
-													className='hover:text-foreground underline-offset-2 hover:underline'
-												>
-													assistir
-												</a>
-											</>
-										) : null}
+										<WatchLink watch={watchOf(opening)} />
 									</p>
 								</li>
 							))}
@@ -111,6 +102,24 @@ function Openings() {
 					)}
 				</Card>
 			</div>
+		</>
+	)
+}
+
+function WatchLink({ watch }: { watch: { href: string; title: string } | null }) {
+	if (!watch) return null
+
+	return (
+		<>
+			{' · '}
+			<a
+				href={watch.href}
+				target='_blank'
+				rel='noreferrer'
+				className='hover:text-foreground underline-offset-2 hover:underline'
+			>
+				{watch.title}
+			</a>
 		</>
 	)
 }
